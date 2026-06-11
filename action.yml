@@ -1,5 +1,5 @@
 name: Self-Hosted GitHub Actions Runner on Google Cloud
-description: A GitHub Action to automatically create Google Compute Engine (GCE) VMs and register them as self-hosted GitHub Actions runners.
+description: A GitHub Action to automatically create Google Cloud VMs (GCE) and register them as self-hosted GitHub Actions runners.
 author: Nils Knieling
 
 branding:
