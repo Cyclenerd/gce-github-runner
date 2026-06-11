@@ -199,7 +199,7 @@ jobs:
 > The VM created by this action is deleted automatically in `delete` mode.
 
 > [!CAUTION]
-> The runner has been tested with the Google-provided Ubuntu (`ubuntu-os-cloud`) images,
+> The runner has been tested with the Google-provided Ubuntu (`ubuntu-os-cloud`) image family `ubuntu-2404-lts-amd64` and `ubuntu-2404-lts-arm64`,
 > which ship with [cloud-init](https://cloudinit.readthedocs.io/) preinstalled. Cloud-init is required because the
 > startup configuration is delivered via the `user-data` instance metadata key.
 
