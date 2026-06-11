@@ -120,6 +120,10 @@ permissions:
   contents: read
   id-token: write # required for Workload Identity Federation
 
+env:
+  PROJECT: my-gcp-project
+  ZONE: us-central1-b
+
 jobs:
   create-runner:
     name: Create Google Cloud runner
@@ -129,13 +133,13 @@ jobs:
       vm_name: ${{ steps.create-gcloud-runner.outputs.vm_name }}
     steps:
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Create runner
         id: create-gcloud-runner
@@ -143,8 +147,8 @@ jobs:
         with:
           mode: create
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          project: my-gcp-project
-          zone: europe-west1-b
+          project: ${{ env.PROJECT }}
+          zone: ${{ env.ZONE }}
           machine_type: e2-medium
           image_family: ubuntu-2404-lts-amd64
           image_project: ubuntu-os-cloud
@@ -170,21 +174,21 @@ jobs:
       id-token: write
     steps:
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Delete runner
         uses: Cyclenerd/gce-github-runner@v1
         with:
           mode: delete
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          project: my-gcp-project
-          zone: europe-west1-b
+          project: ${{ env.PROJECT }}
+          zone: ${{ env.ZONE }}
           name: ${{ needs.create-runner.outputs.label }}
 ```
 
