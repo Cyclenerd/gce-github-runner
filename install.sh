@@ -114,10 +114,6 @@ cd "$MY_RUNNER_DIR" && \
 curl -O -L "https://github.com/actions/runner/releases/download/v${MY_RUNNER_VERSION}/actions-runner-linux-${MY_ARCH}-${MY_RUNNER_VERSION}.tar.gz" && \
 tar xzf "actions-runner-linux-${MY_ARCH}-${MY_RUNNER_VERSION}.tar.gz"
 
-# Patch for Ubuntu 24.04 (https://github.com/actions/runner/issues/3150)
-# This patch might be necessary for successful installation on Ubuntu 24.04
-sed -i 's/libicu72/libicu72 libicu74/' ./bin/installdependencies.sh
-
 # Run the installation script
 ./bin/installdependencies.sh && \
 echo "GitHub Actions Runner installed successfully."
