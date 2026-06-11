@@ -66,6 +66,14 @@ variable "github_repository" {
   }
 }
 
+# GitHub ref (e.g., 'refs/heads/master') to restrict Workload Identity Federation access
+variable "github_ref" {
+  description = "GitHub ref (e.g., 'refs/heads/master') to restrict Workload Identity Federation access"
+  type        = string
+  nullable    = true
+  default     = null
+}
+
 # IPv4 CIDR range for GitHub Runner VMs
 variable "github_runners_internal_cidr" {
   description = "IPv4 CIDR range for GitHub Runner VMs"

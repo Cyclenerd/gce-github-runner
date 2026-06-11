@@ -118,7 +118,9 @@ terraform destroy
 <!-- BEGIN_TF_DOCS -->
 ## Providers
 
-No providers.
+| Name | Version |
+| ---- | ------- |
+| <a name="provider_google"></a> [google](#provider\_google) | 7.36.0 |
 
 ## Inputs
 
@@ -126,6 +128,7 @@ No providers.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_apis"></a> [apis](#input\_apis) | List of Google Cloud APIs to be enable | `list(string)` | <pre>[<br/>  "cloudresourcemanager.googleapis.com",<br/>  "compute.googleapis.com",<br/>  "iam.googleapis.com",<br/>  "logging.googleapis.com",<br/>  "storage.googleapis.com"<br/>]</pre> | no |
 | <a name="input_github_organization"></a> [github\_organization](#input\_github\_organization) | GitHub organization name or username to restrict Workload Identity Federation access | `string` | n/a | yes |
+| <a name="input_github_ref"></a> [github\_ref](#input\_github\_ref) | GitHub ref (e.g., 'refs/heads/master') to restrict Workload Identity Federation access | `string` | `null` | no |
 | <a name="input_github_repository"></a> [github\_repository](#input\_github\_repository) | GitHub repository name (e.g. 'owner/repository') to restrict Workload Identity Federation access | `string` | n/a | yes |
 | <a name="input_github_runners_internal_cidr"></a> [github\_runners\_internal\_cidr](#input\_github\_runners\_internal\_cidr) | IPv4 CIDR range for GitHub Runner VMs | `string` | `"192.168.1.0/24"` | no |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Existing Google Cloud project ID | `string` | n/a | yes |

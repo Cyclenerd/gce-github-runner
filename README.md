@@ -6,7 +6,7 @@
 [![Badge: Ubuntu](https://img.shields.io/badge/Ubuntu-E95420.svg?logo=ubuntu&logoColor=white)](#readme)
 [![Badge: GNU Bash](https://img.shields.io/badge/GNU%20Bash-4EAA25.svg?logo=gnubash&logoColor=white)](#readme)
 
-A GitHub Action to automatically create Google Compute Engin (GCE) VMs and register them as self-hosted GitHub Actions runners.
+A GitHub Action to automatically create Google Compute Engine (GCE) VMs and register them as self-hosted GitHub Actions runners.
 
 Launch a Google Compute Engine VM as a self-hosted GitHub Actions Runner just before your job starts.
 Execute your workflow, and then automatically terminate the VM upon completion.
