@@ -6,8 +6,10 @@ variable "apis" {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
     "logging.googleapis.com",
     "storage.googleapis.com",
+    "sts.googleapis.com",
   ]
 }
 
