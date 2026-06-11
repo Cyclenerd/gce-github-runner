@@ -1,0 +1,179 @@
+name: Self-Hosted GitHub Actions Runner on Google Cloud
+description: A GitHub Action to automatically create Google Compute Engine (GCE) VMs and register them as self-hosted GitHub Actions runners.
+author: Nils Knieling
+
+branding:
+  icon: 'server'
+  color: 'blue'
+
+inputs:
+  delete_wait:
+    description: >-
+      Wait up to 'delete_wait' retries (10 sec each) to delete the Compute Engine VM via the gcloud CLI (default: 360 = 1 hour).
+    required: false
+    default: '360'
+  disk_size:
+    description: >-
+      Boot disk size in GB for the Compute Engine VM.
+    required: false
+    default: '40'
+  disk_type:
+    description: >-
+      Boot disk type for the Compute Engine VM (e.g. 'pd-standard', 'pd-balanced', 'pd-ssd').
+    required: false
+    default: 'pd-balanced'
+  enable_external_ip:
+    description: >-
+      Attach an external (public) IPv4 address to the VM (true/false).
+      Warning: The GitHub API requires outbound internet access. Without an external IP you must provide
+      an alternative route to the internet (e.g. Cloud NAT). Default is true.
+    required: false
+    default: 'true'
+  github_token:
+    description: >-
+      Fine-grained GitHub Personal Access Token (PAT) with 'Read and write' access to 'Administration' assigned.
+    required: true
+  image:
+    description: >-
+      Name of a specific Compute Engine image to create the VM from. If set, takes precedence over 'image_family'.
+    required: false
+    default: 'null'
+  image_family:
+    description: >-
+      Image family to create the VM from (e.g. 'ubuntu-2404-lts-amd64').
+    required: false
+    default: 'ubuntu-2404-lts-amd64'
+  image_project:
+    description: >-
+      Project against which 'image' or 'image_family' is resolved (e.g. 'ubuntu-os-cloud').
+    required: false
+    default: 'ubuntu-os-cloud'
+  machine_type:
+    description: >-
+      Machine type the VM should be created with (e.g. 'e2-medium', 'n2-standard-4').
+    required: false
+    default: 'e2-medium'
+  max_run_duration:
+    description: >-
+      Maximum run duration before the VM is automatically terminated.
+      Accepts the gcloud duration format (e.g. '4h', '30m', '14400s') or a plain number of seconds.
+      This is a safety limit to avoid orphaned VMs if 'delete' mode never runs.
+    required: false
+    default: '4h'
+  mode:
+    description: >-
+      Choose either 'create' to create a new GitHub Actions Runner or 'delete' to delete a previously created one.
+    required: true
+  name:
+    description: >-
+      The name for the VM and label for the GitHub Actions Runner (must be unique within the project and conform to
+      RFC1035: lowercase letters, digits and hyphens; must start with a letter).
+    required: false
+  network:
+    description: >-
+      Name of the VPC network the VM's network interface should be attached to.
+    required: false
+    default: 'default'
+  pre_runner_script:
+    description: >-
+      Specifies bash commands to run before the GitHub Actions Runner starts.
+      It's useful for installing dependencies with apt-get, dnf, zypper etc.
+    required: false
+  project:
+    description: >-
+      Google Cloud project ID in which the VM should be created or deleted.
+      If omitted, the default project configured in the gcloud CLI is used.
+    required: false
+    default: 'null'
+  runner_dir:
+    description: >-
+      GitHub Actions Runner installation directory (created automatically; no trailing slash).
+    required: false
+    default: '/actions-runner'
+  runner_wait:
+    description: >-
+      Wait up to 'runner_wait' retries (10 sec each) for runner registration (default: 10 minutes).
+    required: false
+    default: '60'
+  runner_version:
+    description: >-
+      GitHub Actions Runner version (omit 'v'; e.g., '2.321.0').
+      'latest' will install the latest version.
+      'skip' will skip the installation. A working installation is expected in the 'runner_dir'.
+    required: false
+    default: 'latest'
+  service_account:
+    description: >-
+      Service account email to attach to the VM. If omitted the project default Compute Engine service account is used.
+    required: false
+    default: 'null'
+  scopes:
+    description: >-
+      Comma separated list of access scopes for the attached service account.
+    required: false
+    default: 'cloud-platform'
+  subnet:
+    description: >-
+      Name of the subnetwork the VM's network interface should be attached to.
+    required: false
+    default: 'null'
+  tags:
+    description: >-
+      Comma separated list of network tags to apply to the VM (e.g. for firewall rules).
+    required: false
+    default: 'null'
+  vm_wait:
+    description: >-
+      Wait up to 'vm_wait' retries (10 sec each) for the Compute Engine VM to start running (default: 30 = 5 min).
+    required: false
+    default: '30'
+  zone:
+    description: >-
+      Compute Engine zone to create the VM in (e.g. 'europe-west1-b').
+    required: false
+    default: 'europe-west1-b'
+
+outputs:
+  label:
+    description: >-
+      This label uniquely identifies a GitHub Actions runner,
+      used both to specify which runner a job should execute on via the `runs-on` property and to delete the runner when it's no longer needed.
+    value: ${{ steps.gce-github-runner.outputs.label }}
+  vm_name:
+    description: >-
+      This is the Compute Engine VM name of the runner, used to delete the VM when the runner is no longer required.
+    value: ${{ steps.gce-github-runner.outputs.vm_name }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: GitHub Actions Runner in Google Cloud
+      id: gce-github-runner
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: bash action.sh
+      env:
+        INPUT_DELETE_WAIT: ${{ inputs.delete_wait }}
+        INPUT_DISK_SIZE: ${{ inputs.disk_size }}
+        INPUT_DISK_TYPE: ${{ inputs.disk_type }}
+        INPUT_ENABLE_EXTERNAL_IP: ${{ inputs.enable_external_ip }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_IMAGE: ${{ inputs.image }}
+        INPUT_IMAGE_FAMILY: ${{ inputs.image_family }}
+        INPUT_IMAGE_PROJECT: ${{ inputs.image_project }}
+        INPUT_MACHINE_TYPE: ${{ inputs.machine_type }}
+        INPUT_MAX_RUN_DURATION: ${{ inputs.max_run_duration }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_NAME: ${{ inputs.name }}
+        INPUT_NETWORK: ${{ inputs.network }}
+        INPUT_PRE_RUNNER_SCRIPT: ${{ inputs.pre_runner_script }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_RUNNER_DIR: ${{ inputs.runner_dir }}
+        INPUT_RUNNER_VERSION: ${{ inputs.runner_version }}
+        INPUT_RUNNER_WAIT: ${{ inputs.runner_wait }}
+        INPUT_SERVICE_ACCOUNT: ${{ inputs.service_account }}
+        INPUT_SCOPES: ${{ inputs.scopes }}
+        INPUT_SUBNET: ${{ inputs.subnet }}
+        INPUT_TAGS: ${{ inputs.tags }}
+        INPUT_VM_WAIT: ${{ inputs.vm_wait }}
+        INPUT_ZONE: ${{ inputs.zone }}

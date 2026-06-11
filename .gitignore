@@ -1,0 +1,22 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+.terraform.lock.hcl
+.terraform.tfstate.lock.info
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+cloud-init.yml
+github-runners.json
+output.json
+registration-token.json
