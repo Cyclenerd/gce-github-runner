@@ -61,7 +61,7 @@ Google Cloud prices are based on the `us-central1` (Iowa, USA) region using E2 o
 
 Further savings are possible through Committed Use Discounts (CUD).
 
-You can estimate costs using the [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator) or [gcloud-compute.com](https://gcloud-compute.com/). The minimum monthly cost for the deployed Cloud Run service is approximately $10 USD.
+You can estimate costs using the [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator) or [gcloud-compute.com](https://gcloud-compute.com/).
 
 ## Project Philosophy
 
