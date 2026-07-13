@@ -189,6 +189,17 @@ if [[ ! "$MY_VM_WAIT" =~ ^[0-9]+$ ]]; then
 	exit_with_failure "The maximum wait time (retries) for a running Compute Engine VM must be an integer!"
 fi
 
+# Set the subnetwork (default: null)
+# Accepts a single subnet name or a comma-separated list (one per zone).
+MY_SUBNET=${INPUT_SUBNET:-"null"}
+IFS=',' read -ra SUBNETS <<< "$MY_SUBNET"
+for i in "${!SUBNETS[@]}"; do
+	SUBNETS[i]=$(echo "${SUBNETS[i]}" | xargs)
+	if [[ "${SUBNETS[i]}" != "null" && ! "${SUBNETS[i]}" =~ ^[a-z0-9-]{1,63}$ ]]; then
+		exit_with_failure "'${SUBNETS[i]}' is not a valid subnetwork name!"
+	fi
+done
+
 # Set the Compute Engine zone (default: europe-west1-b)
 MY_ZONE=${INPUT_ZONE:-"europe-west1-b"}
 IFS=',' read -ra ZONES <<< "$MY_ZONE"
@@ -355,7 +366,19 @@ envsubst < cloud-init.template.yml > cloud-init.yml
 # Create the Compute Engine VM via the gcloud CLI.
 VM_CREATED="false"
 MY_ZONE_SUCCESS=""
-for ZONE in "${ZONES[@]}"; do
+for ZONE_INDEX in "${!ZONES[@]}"; do
+	ZONE="${ZONES[ZONE_INDEX]}"
+
+	# Determine the subnet for this zone:
+	# - If only one subnet is given it is used for all zones.
+	# - If multiple subnets are given they are mapped 1-to-1 to the zones.
+	# - If no subnet is given (null) the flag is omitted and GCP picks automatically.
+	if [[ ${#SUBNETS[@]} -eq 1 ]]; then
+		CURRENT_SUBNET="${SUBNETS[0]}"
+	else
+		CURRENT_SUBNET="${SUBNETS[ZONE_INDEX]:-null}"
+	fi
+
 	# Assemble gcloud compute instances create arguments.
 	# https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
 	echo "Generate VM configuration for zone '$ZONE'..."
@@ -398,6 +421,11 @@ for ZONE in "${ZONES[@]}"; do
 	fi
 	if [[ -n "$MY_SCOPES" && "$MY_SCOPES" != "null" ]]; then
 		GCLOUD_CREATE_ARGS+=(--scopes "$MY_SCOPES")
+	fi
+
+	# Subnet.
+	if [[ "$CURRENT_SUBNET" != "null" ]]; then
+		GCLOUD_CREATE_ARGS+=(--subnet "$CURRENT_SUBNET")
 	fi
 
 	echo "Create Compute Engine VM '$MY_NAME' in zone '$ZONE'..."

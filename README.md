@@ -224,6 +224,7 @@ jobs:
 | `runner_wait`         |   | Wait up to `runner_wait` retries (10 sec each) for runner registration. | `60` (10 min) |
 | `service_account`     |   | Service account email to attach to the VM. If omitted, the project default Compute Engine service account is used. | `null` |
 | `scopes`              |   | Comma separated list of access scopes for the attached service account. | `cloud-platform` |
+| `subnet`              |   | Subnetwork name or comma-separated list of subnetwork names (one per zone). If a single value is provided it is used for all zones. If omitted, GCP selects the subnetwork automatically. | `null` |
 | `tags`                |   | Comma separated list of network tags to apply to the VM (e.g. for firewall rules). | `null` |
 | `vm_wait`             |   | Wait up to `vm_wait` retries (10 sec each) for the VM to start running. | `30` (5 min) |
 | `zone`                |   | Compute Engine zone or comma-separated list of zones to create the VM in (e.g. `europe-west1-b, us-central1-a`). The action loops through the list and uses the first zone where VM creation succeeds. | `europe-west1-b` |
@@ -290,6 +291,12 @@ gcloud compute images create "github-runner-image" \
 
 ```bash
 gcloud compute networks list
+```
+
+**List subnetworks:**
+
+```bash
+gcloud compute networks subnets list --filter="region:europe-west1"
 ```
 
 ### Service Accounts

@@ -112,6 +112,13 @@ inputs:
       Comma separated list of access scopes for the attached service account.
     required: false
     default: 'cloud-platform'
+  subnet:
+    description: >-
+      Subnetwork name or comma-separated list of subnetwork names (one per zone) the VM's network interface should be attached to.
+      If a single value is provided it is used for all zones.
+      If omitted, GCP automatically selects the subnetwork from the network.
+    required: false
+    default: 'null'
   tags:
     description: >-
       Comma separated list of network tags to apply to the VM (e.g. for firewall rules).
@@ -173,6 +180,7 @@ runs:
         INPUT_RUNNER_WAIT: ${{ inputs.runner_wait }}
         INPUT_SERVICE_ACCOUNT: ${{ inputs.service_account }}
         INPUT_SCOPES: ${{ inputs.scopes }}
+        INPUT_SUBNET: ${{ inputs.subnet }}
         INPUT_TAGS: ${{ inputs.tags }}
         INPUT_VM_WAIT: ${{ inputs.vm_wait }}
         INPUT_ZONE: ${{ inputs.zone }}
