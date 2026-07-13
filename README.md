@@ -129,7 +129,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       label: ${{ steps.create-gcloud-runner.outputs.label }}
-      vm_name: ${{ steps.create-gcloud-runner.outputs.vm_name }}
       zone: ${{ steps.create-gcloud-runner.outputs.zone }}
     steps:
       - name: Authenticate to Google Cloud
@@ -189,6 +188,7 @@ jobs:
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           project: ${{ env.PROJECT }}
           name: ${{ needs.create-runner.outputs.label }}
+          zone: ${{ needs.create-runner.outputs.zone }}
 ```
 
 ## Inputs
@@ -234,7 +234,6 @@ jobs:
 | Name      | Description |
 |-----------|-------------|
 | `label`   | This label uniquely identifies a GitHub Actions runner, used both to specify which runner a job should execute on via the `runs-on` property and to delete the runner when it's no longer needed. |
-| `vm_name` | This is the Compute Engine VM name of the runner, used to delete the VM when the runner is no longer required. |
 | `zone`    | The Compute Engine zone where the VM was successfully created. |
 
 ## Snippets

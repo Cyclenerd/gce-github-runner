@@ -142,10 +142,6 @@ outputs:
       This label uniquely identifies a GitHub Actions runner,
       used both to specify which runner a job should execute on via the `runs-on` property and to delete the runner when it's no longer needed.
     value: ${{ steps.gce-github-runner.outputs.label }}
-  vm_name:
-    description: >-
-      This is the Compute Engine VM name of the runner, used to delete the VM when the runner is no longer required.
-    value: ${{ steps.gce-github-runner.outputs.vm_name }}
   zone:
     description: >-
       The Google Compute Engine zone where the VM was successfully created.
