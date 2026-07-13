@@ -19,7 +19,7 @@
 # adapted from FAST networking stages
 
 locals {
-  regions = [var.region]
+  regions = keys(var.github_runners_internal_cidr)
   # used when the first character would not work
   _region_cardinal = {
     southeast = "se"

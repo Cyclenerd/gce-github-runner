@@ -1,6 +1,6 @@
-output "region" {
-  description = "The GCP region"
-  value       = var.region
+output "regions" {
+  description = "The GCP regions"
+  value       = keys(var.github_runners_internal_cidr)
 }
 
 output "project" {
@@ -26,10 +26,10 @@ output "network" {
   value       = module.vpc-github-runners.name
 }
 
-# The name of the subnet created for the GitHub runners
-output "subnet" {
-  description = "The name of the subnetwork"
-  value       = values(module.vpc-github-runners.subnets)[0].name
+# The subnets created for the GitHub runners
+output "subnets" {
+  description = "Map of region to subnetwork name"
+  value       = { for s in values(module.vpc-github-runners.subnets) : s.region => s.name }
 }
 
 # The email address of the service account for GitHub Actions Runners (Compute VMs)

@@ -30,19 +30,6 @@ variable "project_id" {
   }
 }
 
-# Google Cloud region for deploying resources
-variable "region" {
-  description = "Google Cloud region name"
-  type        = string
-  default     = "us-central1"
-  nullable    = false
-
-  validation {
-    condition     = can(regex("^[a-z][-a-z]+[0-9]$", var.region))
-    error_message = "Invalid Google Cloud region name!"
-  }
-
-}
 
 # GitHub organization name (or username)
 variable "github_organization" {
@@ -78,13 +65,22 @@ variable "github_ref" {
 
 # IPv4 CIDR range for GitHub Runner VMs
 variable "github_runners_internal_cidr" {
-  description = "IPv4 CIDR range for GitHub Runner VMs"
-  type        = string
-  default     = "192.168.1.0/24"
-  nullable    = false
+  description = "IPv4 CIDR range for GitHub Runner VMs per region"
+  type        = map(string)
+  default = {
+    "us-central1"  = "192.168.1.0/24"
+    "us-west1"     = "192.168.2.0/24"
+    "europe-west1" = "192.168.3.0/24"
+  }
+  nullable = false
 
   validation {
-    condition     = can(cidrhost(var.github_runners_internal_cidr, 0))
+    condition     = alltrue([for r in keys(var.github_runners_internal_cidr) : can(regex("^[a-z][-a-z]+[0-9]$", r))])
+    error_message = "Invalid Google Cloud region name!"
+  }
+
+  validation {
+    condition     = alltrue([for cidr in values(var.github_runners_internal_cidr) : can(cidrhost(cidr, 0))])
     error_message = "Invalid IPv4 CIDR block format!"
   }
 }

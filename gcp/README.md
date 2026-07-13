@@ -82,10 +82,10 @@ GitHub repository name:
 printf 'github_repository = "%s"\n' "[GITHUB OWNER]/[GITHUB REPOSITORY]" > terraform.tfvars
 ```
 
-(Optional) Google Cloud region:
+(Optional) Google Cloud regions and CIDR blocks:
 
 ```bash
-echo "region = \"us-central1\"" >> terraform.tfvars
+echo 'github_runners_internal_cidr = { "us-central1" = "192.168.1.0/24" }' >> terraform.tfvars
 ```
 
 For all available variables, see [variables.tf](variables.tf).
@@ -120,7 +120,7 @@ terraform destroy
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_google"></a> [google](#provider\_google) | 7.36.0 |
+| <a name="provider_google"></a> [google](#provider\_google) | 7.39.0 |
 
 ## Inputs
 
@@ -130,9 +130,8 @@ terraform destroy
 | <a name="input_github_organization"></a> [github\_organization](#input\_github\_organization) | GitHub organization name or username to restrict Workload Identity Federation access | `string` | n/a | yes |
 | <a name="input_github_ref"></a> [github\_ref](#input\_github\_ref) | GitHub ref (e.g., 'refs/heads/master') to restrict Workload Identity Federation access | `string` | `null` | no |
 | <a name="input_github_repository"></a> [github\_repository](#input\_github\_repository) | GitHub repository name (e.g. 'owner/repository') to restrict Workload Identity Federation access | `string` | n/a | yes |
-| <a name="input_github_runners_internal_cidr"></a> [github\_runners\_internal\_cidr](#input\_github\_runners\_internal\_cidr) | IPv4 CIDR range for GitHub Runner VMs | `string` | `"192.168.1.0/24"` | no |
+| <a name="input_github_runners_internal_cidr"></a> [github\_runners\_internal\_cidr](#input\_github\_runners\_internal\_cidr) | IPv4 CIDR range for GitHub Runner VMs per region | `map(string)` | <pre>{<br/>  "europe-west1": "192.168.3.0/24",<br/>  "us-central1": "192.168.1.0/24",<br/>  "us-west1": "192.168.2.0/24"<br/>}</pre> | no |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Existing Google Cloud project ID | `string` | n/a | yes |
-| <a name="input_region"></a> [region](#input\_region) | Google Cloud region name | `string` | `"us-central1"` | no |
 
 ## Outputs
 
@@ -140,9 +139,9 @@ terraform destroy
 | ---- | ----------- |
 | <a name="output_network"></a> [network](#output\_network) | The name of the VPC network |
 | <a name="output_project"></a> [project](#output\_project) | The GCP project ID |
-| <a name="output_region"></a> [region](#output\_region) | The GCP region |
+| <a name="output_regions"></a> [regions](#output\_regions) | The GCP regions |
 | <a name="output_service_account"></a> [service\_account](#output\_service\_account) | The email address of the Compute VM GitHub Runners service account |
-| <a name="output_subnet"></a> [subnet](#output\_subnet) | The name of the subnetwork |
+| <a name="output_subnets"></a> [subnets](#output\_subnets) | Map of region to subnetwork name |
 | <a name="output_workload_identity_provider"></a> [workload\_identity\_provider](#output\_workload\_identity\_provider) | The Workload Identity Provider resource name |
 | <a name="output_workload_identity_service_account"></a> [workload\_identity\_service\_account](#output\_workload\_identity\_service\_account) | The email address of the GitHub Actions service account |
 <!-- END_TF_DOCS -->
