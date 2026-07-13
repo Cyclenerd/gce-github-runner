@@ -244,7 +244,7 @@ if [[ "$MY_MODE" == "delete" ]]; then
 	done
 
 	if [[ -z "$VM_ZONE" ]]; then
-		echo "Compute Engine VM '$MY_NAME' does not exist in any of the specified zones (already deleted)."
+		echo "Compute Engine VM '$MY_NAME' does not exist in any of the specified zones."
 		DELETED="true"
 	else
 		# Delete the Compute Engine VM via the gcloud CLI.
@@ -447,7 +447,6 @@ fi
 # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
 {
 	echo "label=$MY_NAME"
-	echo "vm_name=$MY_NAME"
 	echo "zone=$MY_ZONE_SUCCESS"
 } >> "$GITHUB_OUTPUT"
 
