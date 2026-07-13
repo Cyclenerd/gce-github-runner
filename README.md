@@ -122,7 +122,6 @@ permissions:
 
 env:
   PROJECT: my-gcp-project
-  ZONE: us-central1-b
 
 jobs:
   create-runner:
@@ -131,6 +130,7 @@ jobs:
     outputs:
       label: ${{ steps.create-gcloud-runner.outputs.label }}
       vm_name: ${{ steps.create-gcloud-runner.outputs.vm_name }}
+      zone: ${{ steps.create-gcloud-runner.outputs.zone }}
     steps:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -148,7 +148,7 @@ jobs:
           mode: create
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           project: ${{ env.PROJECT }}
-          zone: ${{ env.ZONE }}
+          zone: "europe-west1-b, us-central1-a, us-west1-b"
           machine_type: e2-medium
           image_family: ubuntu-2404-lts-amd64
           image_project: ubuntu-os-cloud
@@ -188,7 +188,6 @@ jobs:
           mode: delete
           github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           project: ${{ env.PROJECT }}
-          zone: ${{ env.ZONE }}
           name: ${{ needs.create-runner.outputs.label }}
 ```
 
@@ -225,10 +224,9 @@ jobs:
 | `runner_wait`         |   | Wait up to `runner_wait` retries (10 sec each) for runner registration. | `60` (10 min) |
 | `service_account`     |   | Service account email to attach to the VM. If omitted, the project default Compute Engine service account is used. | `null` |
 | `scopes`              |   | Comma separated list of access scopes for the attached service account. | `cloud-platform` |
-| `subnet`              |   | Name of the subnetwork. | `null` |
 | `tags`                |   | Comma separated list of network tags to apply to the VM (e.g. for firewall rules). | `null` |
 | `vm_wait`             |   | Wait up to `vm_wait` retries (10 sec each) for the VM to start running. | `30` (5 min) |
-| `zone`                |   | Compute Engine zone to create the VM in. | `europe-west1-b` |
+| `zone`                |   | Compute Engine zone or comma-separated list of zones to create the VM in (e.g. `europe-west1-b, us-central1-a`). The action loops through the list and uses the first zone where VM creation succeeds. | `europe-west1-b` |
 
 ## Outputs
 
@@ -236,6 +234,7 @@ jobs:
 |-----------|-------------|
 | `label`   | This label uniquely identifies a GitHub Actions runner, used both to specify which runner a job should execute on via the `runs-on` property and to delete the runner when it's no longer needed. |
 | `vm_name` | This is the Compute Engine VM name of the runner, used to delete the VM when the runner is no longer required. |
+| `zone`    | The Compute Engine zone where the VM was successfully created. |
 
 ## Snippets
 
@@ -291,12 +290,6 @@ gcloud compute images create "github-runner-image" \
 
 ```bash
 gcloud compute networks list
-```
-
-**List subnetworks:**
-
-```bash
-gcloud compute networks subnets list --filter="region:europe-west1"
 ```
 
 ### Service Accounts

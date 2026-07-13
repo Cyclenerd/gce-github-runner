@@ -112,11 +112,6 @@ inputs:
       Comma separated list of access scopes for the attached service account.
     required: false
     default: 'cloud-platform'
-  subnet:
-    description: >-
-      Name of the subnetwork the VM's network interface should be attached to.
-    required: false
-    default: 'null'
   tags:
     description: >-
       Comma separated list of network tags to apply to the VM (e.g. for firewall rules).
@@ -129,7 +124,8 @@ inputs:
     default: '30'
   zone:
     description: >-
-      Compute Engine zone to create the VM in (e.g. 'europe-west1-b').
+      Compute Engine zone or comma-separated list of zones to create the VM in (e.g. 'europe-west1-b, us-central1-a').
+      The action loops through the list of zones and uses the first zone where the VM creation succeeds.
     required: false
     default: 'europe-west1-b'
 
@@ -143,6 +139,10 @@ outputs:
     description: >-
       This is the Compute Engine VM name of the runner, used to delete the VM when the runner is no longer required.
     value: ${{ steps.gce-github-runner.outputs.vm_name }}
+  zone:
+    description: >-
+      The Google Compute Engine zone where the VM was successfully created.
+    value: ${{ steps.gce-github-runner.outputs.zone }}
 
 runs:
   using: "composite"
@@ -173,7 +173,6 @@ runs:
         INPUT_RUNNER_WAIT: ${{ inputs.runner_wait }}
         INPUT_SERVICE_ACCOUNT: ${{ inputs.service_account }}
         INPUT_SCOPES: ${{ inputs.scopes }}
-        INPUT_SUBNET: ${{ inputs.subnet }}
         INPUT_TAGS: ${{ inputs.tags }}
         INPUT_VM_WAIT: ${{ inputs.vm_wait }}
         INPUT_ZONE: ${{ inputs.zone }}

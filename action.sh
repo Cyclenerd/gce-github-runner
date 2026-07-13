@@ -180,13 +180,6 @@ MY_SERVICE_ACCOUNT=${INPUT_SERVICE_ACCOUNT:-"null"}
 
 # Set the access scopes (default: cloud-platform)
 MY_SCOPES=${INPUT_SCOPES:-"cloud-platform"}
-
-# Set the subnetwork (default: null)
-MY_SUBNET=${INPUT_SUBNET:-"null"}
-if [[ "$MY_SUBNET" != "null" && ! "$MY_SUBNET" =~ ^[a-z0-9-]{1,63}$ ]]; then
-	exit_with_failure "'$MY_SUBNET' is not a valid subnetwork name!"
-fi
-
 # Set the network tags (default: null)
 MY_TAGS=${INPUT_TAGS:-"null"}
 
@@ -198,9 +191,14 @@ fi
 
 # Set the Compute Engine zone (default: europe-west1-b)
 MY_ZONE=${INPUT_ZONE:-"europe-west1-b"}
-if [[ ! "$MY_ZONE" =~ ^[a-z]+-[a-z]+[0-9]+-[a-z]$ ]]; then
-	exit_with_failure "'$MY_ZONE' is not a valid Compute Engine zone!"
-fi
+IFS=',' read -ra ZONES <<< "$MY_ZONE"
+for i in "${!ZONES[@]}"; do
+	ZONES[i]=$(echo "${ZONES[i]}" | xargs)
+	if [[ ! "${ZONES[i]}" =~ ^[a-z][-a-z]+[0-9]-[a-z]$ ]]; then
+		exit_with_failure "'${ZONES[i]}' is not a valid Compute Engine zone!"
+	fi
+done
+
 
 # Set the maximum run duration before the VM is automatically terminated (default: 4h = 14400s)
 # Accepts the gcloud duration format, e.g. '4h', '30m', '14400s' or a plain number of seconds.
@@ -221,37 +219,56 @@ fi
 #
 
 if [[ "$MY_MODE" == "delete" ]]; then
-	# Delete the Compute Engine VM via the gcloud CLI.
-	# https://cloud.google.com/sdk/gcloud/reference/compute/instances/delete
-	echo "Delete Compute Engine VM '$MY_NAME' in zone '$MY_ZONE'..."
-	MAX_RETRIES=$MY_DELETE_WAIT
-	RETRY_COUNT=0
-	DELETED="false"
-	while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-		if gcloud compute instances delete "$MY_NAME" \
-			--zone "$MY_ZONE" \
-			"${GCLOUD_PROJECT_FLAG[@]}" \
-			--quiet; then
-			echo "Compute Engine VM deleted successfully."
-			DELETED="true"
-			break
-		fi
-
-		# If the VM no longer exists, treat as success.
-		if ! gcloud compute instances describe "$MY_NAME" \
-			--zone "$MY_ZONE" \
+	# Find which zone the VM actually exists in.
+	VM_ZONE=""
+	for ZONE in "${ZONES[@]}"; do
+		if gcloud compute instances describe "$MY_NAME" \
+			--zone "$ZONE" \
 			"${GCLOUD_PROJECT_FLAG[@]}" \
 			--format="value(name)" \
 			--quiet >/dev/null 2>&1; then
-			echo "Compute Engine VM '$MY_NAME' does not exist (already deleted)."
-			DELETED="true"
+			VM_ZONE="$ZONE"
 			break
 		fi
-
-		RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
-		echo "Failed to delete VM. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
-		sleep "$WAIT_SEC"
 	done
+
+	if [[ -z "$VM_ZONE" ]]; then
+		echo "Compute Engine VM '$MY_NAME' does not exist in any of the specified zones (already deleted)."
+		DELETED="true"
+	else
+		# Delete the Compute Engine VM via the gcloud CLI.
+		# https://cloud.google.com/sdk/gcloud/reference/compute/instances/delete
+		echo "Delete Compute Engine VM '$MY_NAME' in zone '$VM_ZONE'..."
+		MAX_RETRIES=$MY_DELETE_WAIT
+		RETRY_COUNT=0
+		DELETED="false"
+		while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+			if gcloud compute instances delete "$MY_NAME" \
+				--zone "$VM_ZONE" \
+				"${GCLOUD_PROJECT_FLAG[@]}" \
+				--quiet; then
+				echo "Compute Engine VM deleted successfully."
+				DELETED="true"
+				break
+			fi
+
+			# If the VM no longer exists, treat as success.
+			if ! gcloud compute instances describe "$MY_NAME" \
+				--zone "$VM_ZONE" \
+				"${GCLOUD_PROJECT_FLAG[@]}" \
+				--format="value(name)" \
+				--quiet >/dev/null 2>&1; then
+				echo "Compute Engine VM '$MY_NAME' does not exist (already deleted)."
+				DELETED="true"
+				break
+			fi
+
+			RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
+			echo "Failed to delete VM. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
+			sleep "$WAIT_SEC"
+		done
+	fi
+
 	if [[ "$DELETED" != "true" ]]; then
 		exit_with_failure "Failed to delete Compute Engine VM! Please check manually."
 	fi
@@ -335,65 +352,76 @@ export MY_RUNNER_VERSION
 # Substitute environment variables in the cloud-init template and create the final cloud-init configuration
 envsubst < cloud-init.template.yml > cloud-init.yml
 
-# Assemble gcloud compute instances create arguments.
-# https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
-echo "Generate VM configuration..."
-GCLOUD_CREATE_ARGS=(
-	"$MY_NAME"
-	--zone "$MY_ZONE"
-	--machine-type "$MY_MACHINE_TYPE"
-	--boot-disk-size "${MY_DISK_SIZE}GB"
-	--boot-disk-type "$MY_DISK_TYPE"
-	--network "$MY_NETWORK"
-	--labels "type=github-runner,gh-runner=true"
-	--metadata "vmDnsSetting=ZonalOnly,block-project-ssh-keys=true"
-	--metadata-from-file "user-data=cloud-init.yml"
-	--max-run-duration "$MY_MAX_RUN_DURATION"
-	--instance-termination-action "DELETE"
-	--quiet
-)
-GCLOUD_CREATE_ARGS+=("${GCLOUD_PROJECT_FLAG[@]}")
-
-# Image: prefer an explicit image, otherwise use the image family.
-if [[ "$MY_IMAGE" != "null" ]]; then
-	GCLOUD_CREATE_ARGS+=(--image "$MY_IMAGE" --image-project "$MY_IMAGE_PROJECT")
-else
-	GCLOUD_CREATE_ARGS+=(--image-family "$MY_IMAGE_FAMILY" --image-project "$MY_IMAGE_PROJECT")
-fi
-
-# External IP configuration.
-if [[ "$MY_ENABLE_EXTERNAL_IP" == "false" ]]; then
-	GCLOUD_CREATE_ARGS+=(--no-address)
-fi
-
-# Subnetwork.
-if [[ "$MY_SUBNET" != "null" ]]; then
-	GCLOUD_CREATE_ARGS+=(--subnet "$MY_SUBNET")
-fi
-
-# Network tags.
-if [[ "$MY_TAGS" != "null" ]]; then
-	GCLOUD_CREATE_ARGS+=(--tags "$MY_TAGS")
-fi
-
-# Service account and scopes.
-if [[ "$MY_SERVICE_ACCOUNT" != "null" ]]; then
-	GCLOUD_CREATE_ARGS+=(--service-account "$MY_SERVICE_ACCOUNT")
-fi
-if [[ -n "$MY_SCOPES" && "$MY_SCOPES" != "null" ]]; then
-	GCLOUD_CREATE_ARGS+=(--scopes "$MY_SCOPES")
-fi
-
 # Create the Compute Engine VM via the gcloud CLI.
-echo "Create Compute Engine VM '$MY_NAME' in zone '$MY_ZONE'..."
-gcloud compute instances create "${GCLOUD_CREATE_ARGS[@]}" \
-	|| exit_with_failure "Failed to create Compute Engine VM in Google Cloud!"
-echo "Compute Engine VM created successfully."
+VM_CREATED="false"
+MY_ZONE_SUCCESS=""
+for ZONE in "${ZONES[@]}"; do
+	# Assemble gcloud compute instances create arguments.
+	# https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
+	echo "Generate VM configuration for zone '$ZONE'..."
+	GCLOUD_CREATE_ARGS=(
+		"$MY_NAME"
+		--zone "$ZONE"
+		--machine-type "$MY_MACHINE_TYPE"
+		--boot-disk-size "${MY_DISK_SIZE}GB"
+		--boot-disk-type "$MY_DISK_TYPE"
+		--network "$MY_NETWORK"
+		--labels "type=github-runner,gh-runner=true"
+		--metadata "vmDnsSetting=ZonalOnly,block-project-ssh-keys=true"
+		--metadata-from-file "user-data=cloud-init.yml"
+		--max-run-duration "$MY_MAX_RUN_DURATION"
+		--instance-termination-action "DELETE"
+		--quiet
+	)
+	GCLOUD_CREATE_ARGS+=("${GCLOUD_PROJECT_FLAG[@]}")
+
+	# Image: prefer an explicit image, otherwise use the image family.
+	if [[ "$MY_IMAGE" != "null" ]]; then
+		GCLOUD_CREATE_ARGS+=(--image "$MY_IMAGE" --image-project "$MY_IMAGE_PROJECT")
+	else
+		GCLOUD_CREATE_ARGS+=(--image-family "$MY_IMAGE_FAMILY" --image-project "$MY_IMAGE_PROJECT")
+	fi
+
+	# External IP configuration.
+	if [[ "$MY_ENABLE_EXTERNAL_IP" == "false" ]]; then
+		GCLOUD_CREATE_ARGS+=(--no-address)
+	fi
+
+	# Network tags.
+	if [[ "$MY_TAGS" != "null" ]]; then
+		GCLOUD_CREATE_ARGS+=(--tags "$MY_TAGS")
+	fi
+
+	# Service account and scopes.
+	if [[ "$MY_SERVICE_ACCOUNT" != "null" ]]; then
+		GCLOUD_CREATE_ARGS+=(--service-account "$MY_SERVICE_ACCOUNT")
+	fi
+	if [[ -n "$MY_SCOPES" && "$MY_SCOPES" != "null" ]]; then
+		GCLOUD_CREATE_ARGS+=(--scopes "$MY_SCOPES")
+	fi
+
+	echo "Create Compute Engine VM '$MY_NAME' in zone '$ZONE'..."
+	if gcloud compute instances create "${GCLOUD_CREATE_ARGS[@]}"; then
+		echo "Compute Engine VM created successfully in zone '$ZONE'."
+		VM_CREATED="true"
+		MY_ZONE_SUCCESS="$ZONE"
+		break
+	else
+		echo "WARNING: Failed to create Compute Engine VM in zone '$ZONE'. Trying next zone..."
+	fi
+done
+
+if [[ "$VM_CREATED" != "true" ]]; then
+	exit_with_failure "Failed to create Compute Engine VM in any of the specified zones!"
+fi
 
 # Set GitHub Action output
 # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
-echo "label=$MY_NAME" >> "$GITHUB_OUTPUT"
-echo "vm_name=$MY_NAME" >> "$GITHUB_OUTPUT"
+{
+	echo "label=$MY_NAME"
+	echo "vm_name=$MY_NAME"
+	echo "zone=$MY_ZONE_SUCCESS"
+} >> "$GITHUB_OUTPUT"
 
 # Wait for the VM to reach the RUNNING status.
 MAX_RETRIES=$MY_VM_WAIT
@@ -403,7 +431,7 @@ echo "Wait for Compute Engine VM..."
 while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
 	# https://cloud.google.com/sdk/gcloud/reference/compute/instances/describe
 	MY_VM_STATUS=$(gcloud compute instances describe "$MY_NAME" \
-		--zone "$MY_ZONE" \
+		--zone "$MY_ZONE_SUCCESS" \
 		"${GCLOUD_PROJECT_FLAG[@]}" \
 		--format="value(status)" \
 		--quiet 2>/dev/null)
